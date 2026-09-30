@@ -186,6 +186,8 @@ def test_restore_reverts_moved_rows(app, tmp_path, monkeypatch):
     app._poll()
     assert app.tree.set(iid, "status") == "moved"
 
+    stub.calls.clear()  # verify's popup arrived; the pump below must wait
+    # for the *restore* worker's own completion popup
     monkeypatch.setattr(G, "_ask_choose_items", lambda *a, **k: ["fake.mp4"])
     app.restore_quarantine_from_gui()
     _pump(app, stub)
@@ -210,6 +212,8 @@ def test_restore_removes_synthetic_rows(app, tmp_path, monkeypatch):
     synth = list(app.quar_iids.values())
     assert len(synth) == 1
 
+    stub.calls.clear()  # verify's popup arrived; the pump below must wait
+    # for the *restore* worker's own completion popup
     monkeypatch.setattr(G, "_ask_choose_items", lambda *a, **k: ["ghost.webm"])
     app.restore_quarantine_from_gui()
     _pump(app, stub)

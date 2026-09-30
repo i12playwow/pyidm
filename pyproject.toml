@@ -14,7 +14,8 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.9", "mypy>=1.9", "coverage[toml]>=7.4",
-       "vermin>=1.6"]  # stdlib signature drift vs the py39 floor (CI lint-py39)
+       "vermin>=1.6",  # stdlib signature drift vs the py39 floor (CI lint-py39)
+       "types-requests"]  # mypy stubs for the main HTTP dep
 
 [project.scripts]
 idm = "idm.cli:main"
@@ -83,6 +84,11 @@ ignore = [
 # Same baseline as ruff's target-version: the py39 floor is a hard
 # requirement, so every module must type-check with the stdlib typeshed.
 python_version = "3.9"
+# Windows-first app: typeshed's winreg stubs only exist under the win32
+# platform view, and config.py's registry mirror is behind os.name guards at
+# runtime. Pinning the platform keeps Linux CI's mypy run identical to a
+# Windows developer's.
+platform = "win32"
 files = ["idm"]
 # Tk UI code mixes untyped closures and **pad dicts; enabling these would
 # surface hundreds of pre-existing notes. Revisit when gui.py is split up.
