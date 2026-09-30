@@ -1,0 +1,11 @@
+{
+  "_readme": "EDIT ME: point refresh_url at the API that mints fresh links for your host. Placeholders: {0e} = full original URL URL-encoded (use this in query strings), {0} = full original URL raw, {1}/{2}/{name} = capture groups from 'match'. 'url_field' is the dotted JSON path to the fresh link in the API response (e.g. 'url', 'data.url', 'result.0.link'). Test with:  idm refresh \"<paste an expired URL>\"  — or let a batch do it automatically.",
+  "link_providers": [
+    {
+      "_note": "Generic provider: any https URL that carries a token in the query string. Narrow 'match' to your real domain (e.g. ^https://cdn\\.myhost\\.com/) once confirmed, and list more specific providers ABOVE this one — first match wins.",
+      "match": "^https://[^/]+/.+\\?token=",
+      "refresh_url": "https://YOUR-API-HOST.example/v1/refresh?url={0e}",
+      "url_field": "data.url"
+    }
+  ]
+}

@@ -1,0 +1,113 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyidm"
+version = "1.11.77"
+description = "Batch download manager with expiring-link refresh, resumable downloads, and subtitle fetching"
+requires-python = ">=3.9"
+dependencies = [
+    "requests>=2.31",
+    "rich>=13.7",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.9", "mypy>=1.9", "coverage[toml]>=7.4",
+       "vermin>=1.6"]  # stdlib signature drift vs the py39 floor (CI lint-py39)
+
+[project.scripts]
+idm = "idm.cli:main"
+idm-gui = "idm.gui:main"
+
+[tool.setuptools]
+packages = ["idm"]
+
+[tool.ruff]
+target-version = "py39"          # matches requires-python; 3.10+ syntax is an
+# error, keeping the tree importable on 3.9-3.11
+line-length = 100
+# portable/ is the vendored runtime bundle (gitignored files are skipped
+# automatically; portable/, .freebuff/ and subs_test/ are not)
+extend-exclude = ["portable", ".freebuff", "subs_test"]
+
+[tool.ruff.lint]
+# The cleanup rule set: 3.12-only syntax (E9/F), dead code (F), the
+# correctness suspects fixed by hand (B/SIM/RUF), plus FA to guard the
+# other py3.9-breaker (PEP 604 unions outside `from __future__ import
+# annotations` files).
+select = [
+  "E4", "E7", "E9",  # pycodestyle: syntax errors, unreachable code, bare except, unused names
+  "F",               # pyflakes: unused imports/variables, redefinitions, bad f-strings
+  "I",               # import sorting (isort)
+  "UP",              # pyupgrade: py3.9+ spellings
+  "B",               # flake8-bugbear: likely bugs
+  "SIM",             # flake8-simplify
+  "C4",              # flake8-comprehensions
+  "ISC",             # implicit string concatenation
+  "FA",              # future-annotations guard (PEP 604/585 vs py3.9 runtime)
+  "RUF",             # ruff-specific: stale noqa, unused unpacked vars, ...
+]
+ignore = [
+  "E741",   # ambiguous variable names (l/I) appear in parsing code
+  "E731",   # lambda assignments; house style allows them
+  "B008",   # function call in argument default (request-style factories)
+  "B017",   # assertRaises(Exception) in error-path tests
+  "B028",   # warnings.warn without stacklevel
+  "B904",   # raise-from inside except; many best-effort re-raises
+  "SIM105", # contextlib.suppress prefers explicit try/except here
+  "SIM108", # ternary rewrites of if/else blocks
+  "SIM117", # nested with collapsible to one (readability preference)
+  "RUF005", # list unpacking vs concatenation; both used by hand
+  "RUF012", # mutable class attrs: pyidm uses them for module-level tables
+  "RUF043", # pytest.raises(match=...) patterns in tests
+  "ISC001", # conflicts with the ruff formatter if it is ever adopted
+]
+
+[tool.ruff.lint.per-file-ignores]
+# GUI test modules import tkinter behind importorskip (no display on CI),
+# unpack dialog closures positionally (names are documentation), and read
+# the first chip via single-element slices for readability.
+"tests/*" = ["E402", "RUF015", "RUF059"]
+"bench/*" = ["RUF015"]
+# User-facing Tk labels use typographic unicode (× · —) on purpose.
+"idm/gui.py" = ["RUF001"]
+# Windows env vars are canonically mixed-case; os.environ lookups must
+# match the OS spelling exactly.
+"idm/players.py" = ["SIM112"]
+# gui_common/query_dialogs carry typographic unicode (× · —) on purpose.
+"idm/gui_common.py" = ["RUF001"]
+"idm/query_dialogs.py" = ["RUF001"]
+
+[tool.mypy]
+# Same baseline as ruff's target-version: the py39 floor is a hard
+# requirement, so every module must type-check with the stdlib typeshed.
+python_version = "3.9"
+files = ["idm"]
+# Tk UI code mixes untyped closures and **pad dicts; enabling these would
+# surface hundreds of pre-existing notes. Revisit when gui.py is split up.
+check_untyped_defs = false
+disallow_untyped_defs = false
+warn_unused_ignores = true
+warn_redundant_casts = true
+no_implicit_optional = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+# Measure the package only — tests/ must never pad the total.
+source = ["idm"]
+
+[tool.coverage.report]
+# CI gate (coverage report exits nonzero below this). Measured 81% on the
+# py3.12 suite; 80 gives a point of headroom without letting real drift in.
+fail_under = 80
+show_missing = true
+include = ["idm/*"]
+# Blocks that never execute at runtime but would otherwise count as misses.
+exclude_also = [
+  'if __name__ == "__main__":',
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
+]

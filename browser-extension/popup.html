@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>PyIDM Collector</title>
+  <style>
+    body { font: 13px system-ui, sans-serif; width: 380px; margin: 0; padding: 10px; }
+    h1 { font-size: 14px; margin: 0 0 8px; }
+    #status { color: #555; margin: 6px 0; min-height: 16px; }
+    /* error state: color + weight, so it isn't color-only (WCAG 1.4.1); #b00020 on white is 7.3:1 */
+    #status.err { color: #b00020; font-weight: 600; }
+    small { color: #666; }
+    button { padding: 6px 10px; margin-right: 6px; min-height: 24px; }
+    button:focus-visible, input:focus-visible, a:focus-visible {
+      outline: 2px solid currentColor;
+      outline-offset: 2px;
+    }
+    .row { margin: 6px 0; }
+    ul { max-height: 180px; overflow-y: auto; margin: 6px 0; padding-left: 18px; }
+    li { margin: 2px 0; word-break: break-all; }
+    /* whole row is the clickable target — clears the 24x24 minimum (WCAG 2.5.8) */
+    li label { display: inline-flex; align-items: center; gap: 4px; min-height: 24px; user-select: none; }
+    input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: #005fcc; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>PyIDM Collector</h1>
+    <div id="status" role="status" aria-live="polite">checking collector…</div>
+    <div class="row">
+      <button id="scan">Add page links</button>
+      <button id="media">Media only</button>
+      <button id="page">Queue page URL</button>
+    </div>
+    <div class="row">
+      <label><input type="checkbox" id="start"> start downloading immediately</label>
+      <small>(else they wait in the queue)</small>
+    </div>
+    <div class="row" id="listbox" hidden>
+      <b>Found on this page</b> <small>(uncheck what you don't want)</small>
+      <ul id="list"></ul>
+    </div>
+    <div class="row">
+      <button id="send">Send to PyIDM</button>
+      <button id="clear">Clear queue</button>
+    </div>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>

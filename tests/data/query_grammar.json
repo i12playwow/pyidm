@@ -1,0 +1,410 @@
+{
+  "bare_builtins": [
+    "length",
+    "keys",
+    "add",
+    "min",
+    "max",
+    "first",
+    "last"
+  ],
+  "call_builtins": [
+    "select",
+    "map",
+    "has",
+    "startswith",
+    "endswith",
+    "contains"
+  ],
+  "literal_words": [
+    "true",
+    "false",
+    "null",
+    "not"
+  ],
+  "cmp_ops": [
+    "!=",
+    "<",
+    "<=",
+    "==",
+    ">",
+    ">="
+  ],
+  "arith_ops": [
+    "+",
+    "-"
+  ],
+  "accepted_count": 59,
+  "rejected_count": 35,
+  "accepted": [
+    ".",
+    ".count",
+    ".downloads[0].filename",
+    ".downloads[-1].status",
+    ".missing",
+    ".downloads[].filename",
+    ".downloads[]?",
+    ".missing[]?",
+    "[].status",
+    "[]",
+    ".downloads | length",
+    ".downloads | first | .status",
+    ". | length",
+    "length",
+    ".downloads[0] | keys",
+    ".downloads[].total_bytes | add",
+    ".downloads[].total_bytes | min",
+    ".downloads[].total_bytes | max",
+    ".downloads | first",
+    ".downloads | last",
+    "select(.status == \"error\")",
+    ".downloads[] | select(.status == \"error\") | .filename",
+    ".downloads | map(.filename)",
+    ".downloads | map(has(\"url\"))",
+    ".downloads[0][\"filename\"]",
+    "[\"count\"]",
+    ".downloads[0].url | startswith(\"https://\")",
+    ".downloads[] | select(.url | startswith(\"http\")) | .filename",
+    ".downloads[0].url | endswith(\".zip\")",
+    ".downloads[] | select(.filename | endswith(\".zip\")) | .url",
+    ".downloads[1].message | contains(\"500\")",
+    ".downloads[] | select(.url | contains(\"cdn\")) | .filename",
+    "true",
+    "false",
+    "null",
+    "\"string\"",
+    "42",
+    "-3",
+    ".ok == .count",
+    ".downloads[1].message != null",
+    ".count + 1",
+    ".count - 1",
+    ".count == 2 and .ok == 1",
+    ".all_ok or .ok",
+    "not",
+    ".ok | not",
+    "(.ok)",
+    "(.ok + 1) == 2",
+    ".downloads | (length == 2)",
+    ".downloads[0] | keys | first",
+    ".downloads[]? | .filename?",
+    ".downloads[0].filename?",
+    ".[\"count\"]",
+    "[\"count\"]",
+    ".downloads | map(.filename)",
+    [
+      ".downloads[] | select(.status == \"error\") | .filename",
+      {
+        "count": 2,
+        "ok": 1,
+        "all_ok": false,
+        "total_bytes": 100,
+        "by_status": {
+          "done": 1,
+          "error": 1
+        },
+        "downloads": [
+          {
+            "url": "https://cdn/a.zip",
+            "filename": "a.zip",
+            "status": "done",
+            "total_bytes": 100
+          },
+          {
+            "url": "http://cdn/b.bin",
+            "filename": "b.bin",
+            "status": "error",
+            "total_bytes": 0,
+            "message": "HTTP 500"
+          }
+        ]
+      }
+    ],
+    [
+      "[.[] | select(.status == \"error\")] | length",
+      [
+        {
+          "url": "https://cdn/a.zip",
+          "filename": "a.zip",
+          "status": "done",
+          "total_bytes": 100
+        },
+        {
+          "url": "http://cdn/b.bin",
+          "filename": "b.bin",
+          "status": "error",
+          "total_bytes": 0,
+          "message": "HTTP 500"
+        }
+      ]
+    ],
+    ".downloads[0][\"filename\"]",
+    ".count | .[]?"
+  ],
+  "rejected": [
+    ".[1:2]",
+    "$var",
+    "@base64",
+    ".a as $x | .b",
+    "def f: .;",
+    ".[] | recurse",
+    ".a // .b",
+    ".a | scan(\"x\")",
+    ".a | test(\"x\")",
+    ".a | capture(\"x\")",
+    ".a |= 1",
+    ".a = 1",
+    "env.HOME",
+    "input",
+    ".downloads[0].bogus[",
+    ".count +",
+    ".count + +",
+    "bogus",
+    "select",
+    "select(",
+    "select()",
+    "select.x",
+    "map",
+    "map(",
+    "has",
+    "has(\"k\"",
+    "startswith(",
+    "endswith(",
+    "contains(",
+    "\"unterminated",
+    "(.ok",
+    ".ok)",
+    ".downloads | ",
+    "| length",
+    ".."
+  ],
+  "error_messages": {
+    ".[1:2]": "expected ']' in query",
+    "$var": "unexpected '$' in query",
+    "@base64": "unexpected '@' in query",
+    ".a as $x | .b": "unexpected 'as' in query",
+    "def f: .;": "unexpected 'def' in query",
+    ".[] | recurse": "unexpected 'recurse' in query",
+    ".a // .b": "unexpected '/' in query",
+    ".a | scan(\"x\")": "unexpected 'scan' in query",
+    ".a | test(\"x\")": "unexpected 'test' in query",
+    ".a | capture(\"x\")": "unexpected 'capture' in query",
+    ".a |= 1": "unexpected '=' in query",
+    ".a = 1": "unexpected '=' in query"
+  },
+  "result_shapes": {
+    ".": {
+      "dict": {
+        "all_ok": "bool",
+        "by_status": {
+          "dict": {
+            "done": "int",
+            "error": "int"
+          }
+        },
+        "count": "int",
+        "downloads": {
+          "list": [
+            {
+              "dict": {
+                "filename": "str",
+                "status": "str",
+                "total_bytes": "int",
+                "url": "str"
+              }
+            },
+            {
+              "dict": {
+                "filename": "str",
+                "message": "str",
+                "status": "str",
+                "total_bytes": "int",
+                "url": "str"
+              }
+            }
+          ]
+        },
+        "ok": "int",
+        "total_bytes": "int"
+      }
+    },
+    ".count": "int",
+    ".downloads[0].filename": "str",
+    ".downloads[-1].status": "str",
+    ".missing": "NoneType",
+    ".downloads[].filename": {
+      "list": [
+        "str",
+        "str"
+      ]
+    },
+    ".downloads[]?": {
+      "list": [
+        {
+          "dict": {
+            "filename": "str",
+            "status": "str",
+            "total_bytes": "int",
+            "url": "str"
+          }
+        },
+        {
+          "dict": {
+            "filename": "str",
+            "message": "str",
+            "status": "str",
+            "total_bytes": "int",
+            "url": "str"
+          }
+        }
+      ]
+    },
+    ".missing[]?": {
+      "list": []
+    },
+    "[].status": {
+      "list": []
+    },
+    "[]": {
+      "list": [
+        "int",
+        "int",
+        "bool",
+        "int",
+        {
+          "dict": {
+            "done": "int",
+            "error": "int"
+          }
+        },
+        {
+          "list": [
+            {
+              "dict": {
+                "filename": "str",
+                "status": "str",
+                "total_bytes": "int",
+                "url": "str"
+              }
+            },
+            {
+              "dict": {
+                "filename": "str",
+                "message": "str",
+                "status": "str",
+                "total_bytes": "int",
+                "url": "str"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    ".downloads | length": "int",
+    ".downloads | first | .status": "str",
+    ". | length": "int",
+    "length": "int",
+    ".downloads[0] | keys": {
+      "list": [
+        "str",
+        "str",
+        "str",
+        "str"
+      ]
+    },
+    ".downloads[].total_bytes | add": "int",
+    ".downloads[].total_bytes | min": "int",
+    ".downloads[].total_bytes | max": "int",
+    ".downloads | first": {
+      "dict": {
+        "filename": "str",
+        "status": "str",
+        "total_bytes": "int",
+        "url": "str"
+      }
+    },
+    ".downloads | last": {
+      "dict": {
+        "filename": "str",
+        "message": "str",
+        "status": "str",
+        "total_bytes": "int",
+        "url": "str"
+      }
+    },
+    "select(.status == \"error\")": "NoneType",
+    ".downloads[] | select(.status == \"error\") | .filename": {
+      "list": [
+        "str"
+      ]
+    },
+    ".downloads | map(.filename)": {
+      "list": [
+        "str",
+        "str"
+      ]
+    },
+    ".downloads | map(has(\"url\"))": {
+      "list": [
+        "bool",
+        "bool"
+      ]
+    },
+    ".downloads[0][\"filename\"]": "str",
+    "[\"count\"]": {
+      "list": [
+        "str"
+      ]
+    },
+    ".downloads[0].url | startswith(\"https://\")": "bool",
+    ".downloads[] | select(.url | startswith(\"http\")) | .filename": {
+      "list": [
+        "str",
+        "str"
+      ]
+    },
+    ".downloads[0].url | endswith(\".zip\")": "bool",
+    ".downloads[] | select(.filename | endswith(\".zip\")) | .url": {
+      "list": [
+        "str"
+      ]
+    },
+    ".downloads[1].message | contains(\"500\")": "bool",
+    ".downloads[] | select(.url | contains(\"cdn\")) | .filename": {
+      "list": [
+        "str",
+        "str"
+      ]
+    },
+    "true": "bool",
+    "false": "bool",
+    "null": "NoneType",
+    "\"string\"": "str",
+    "42": "int",
+    "-3": "int",
+    ".ok == .count": "bool",
+    ".downloads[1].message != null": "bool",
+    ".count + 1": "int",
+    ".count - 1": "int",
+    ".count == 2 and .ok == 1": "bool",
+    ".all_ok or .ok": "bool",
+    "not": "bool",
+    ".ok | not": "bool",
+    "(.ok)": "int",
+    "(.ok + 1) == 2": "bool",
+    ".downloads | (length == 2)": "bool",
+    ".downloads[0] | keys | first": "str",
+    ".downloads[]? | .filename?": {
+      "list": [
+        "str",
+        "str"
+      ]
+    },
+    ".downloads[0].filename?": "str",
+    ".[\"count\"]": "int",
+    "[.[] | select(.status == \"error\")] | length": "int",
+    ".count | .[]?": {
+      "list": []
+    }
+  }
+}

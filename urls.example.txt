@@ -1,0 +1,6 @@
+# PyIDM batch list — one URL per line.
+# Lines starting with '#' are ignored.
+# Optional rename:  <url> -> <filename>
+https://speed.hetzner.de/100MB.bin
+# https://example.com/videos/lecture01.mp4 -> lecture-01.mp4
+# https://example.com/videos/lecture02.mp4

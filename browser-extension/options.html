@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>PyIDM Collector — Options</title>
+  <style>
+    body { font: 13px system-ui, sans-serif; margin: 10px; width: 300px; }
+    h1 { font-size: 14px; margin: 0 0 8px; }
+    #msg { color: #555; min-height: 18px; margin-top: 8px; }
+    /* error state: color + weight, so it isn't color-only (WCAG 1.4.1); #b00020 on white is 7.3:1 */
+    #msg.err { color: #b00020; font-weight: 600; }
+    button { padding: 6px 10px; min-height: 24px; }
+    button:focus-visible, input:focus-visible {
+      outline: 2px solid currentColor;
+      outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>PyIDM Collector options</h1>
+    <label>Collector port
+      <input id="port" type="number" min="1024" max="65535" style="width:90px">
+    </label>
+    <button id="save">Save</button>
+    <button id="test">Test</button>
+    <div id="msg" role="status" aria-live="polite"></div>
+  </main>
+  <script src="options.js"></script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "PyIDM Collector",
+  "version": "1.0.0",
+  "description": "Send links and page media to PyIDM: popup page scan, right-click 'Send link to PyIDM…', one-click batch queueing.",
+  "permissions": ["contextMenus", "storage", "notifications", "activeTab", "scripting"],
+  "host_permissions": ["http://127.0.0.1/*"],
+  "options_ui": { "page": "options.html", "open_in_tab": false },
+  "background": { "service_worker": "background.js" },
+  "action": { "default_title": "PyIDM Collector", "default_popup": "popup.html" },
+  "icons": { "128": "icon.png" }
+}

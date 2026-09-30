@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: ruff + mypy (py39 target)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install
+        run: pip install -e ".[dev]"
+      - name: ruff (py39 target — flags 3.12-only syntax and dead code)
+        run: ruff check .
+      - name: mypy (python_version = 3.9 typeshed)
+        run: mypy
+
+  lint-py39:
+    name: ruff + stdlib drift (py3.9 interpreter)
+    # The floor version must keep working, not just parse. ruff's py39
+    # target already rejects 3.10+ syntax; vermin adds the other half:
+    # stdlib API/signature drift (e.g. Path.write_text(newline=) is 3.10+
+    # and broke every export on 3.9 while passing every 3.12 gate).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+          cache: pip
+      - name: Install (proves the dev toolchain itself is 3.9-installable)
+        run: pip install -e ".[dev]"
+      - name: ruff (executed by the 3.9 interpreter)
+        run: python -m ruff check .
+      - name: vermin (stdlib signature drift vs the 3.9 floor)
+        run: vermin -t=3.9- --violations --no-tips idm tests bench portable_zip.py
+
+  test:
+    name: pytest (py${{ matrix.python-version }})
+    # windows-first desktop app: Tk tests, registry env mirror, ProgramFiles
+    # player paths all expect Windows; ubuntu runners have no display.
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install
+        run: pip install -e ".[dev]"
+      - name: Test (under coverage)
+        run: python -m coverage run -m pytest tests -q
+      - name: Coverage gate (fail_under = 80, package only)
+        run: python -m coverage report
+      - name: Coverage XML
+        if: always()
+        shell: bash
+        run: |
+          if [ -f .coverage ]; then
+            python -m coverage xml -o "coverage-py${{ matrix.python-version }}.xml"
+          else
+            echo "no coverage data produced"
+          fi
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-py${{ matrix.python-version }}
+          path: coverage-py${{ matrix.python-version }}.xml
+          if-no-files-found: ignore

@@ -1,0 +1,23 @@
+__pycache__/
+*.pyc
+build/
+pyidm.egg-info/
+downloads/
+exe_test/
+*.part
+idm.state.json
+.coverage*
+coverage-py*.xml
+# --- generated build/dev artifacts (initial-commit scope decision) ---
+portable/PyIDM/
+portable/PyIDM-portable.zip
+portable/python-embed.zip
+dist/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.freebuff/
+subs_test/
+# oversized benchmark fixture (sits at GitHub's 100MB file limit)
+bench/100Mb.dat
+/*.srt
