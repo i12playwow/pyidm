@@ -149,8 +149,9 @@ def prune_stale_records(state_or_path, scan: dict | None = None,
     # bytes_reclaimed clamps at 0: the fresh 'updated' timestamp can vary a
     # byte or two between writes, so re-vacuuming an already-compact store
     # may measure a 1-byte GROWTH — that is jitter, not a reclaim.
-    reclaimed = (max(0, bytes_before - bytes_after)
-                 if None not in (bytes_before, bytes_after) else None)
+    reclaimed = None
+    if bytes_before is not None and bytes_after is not None:
+        reclaimed = max(0, bytes_before - bytes_after)
     payload = {"action": "apply", "dir": str(out_dir), "scanned": before,
                "stale": removed, "live": before - removed, "records": rows,
                "compacted": bool(compact),

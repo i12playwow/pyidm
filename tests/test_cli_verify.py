@@ -80,7 +80,7 @@ def test_no_opinion_extension_skipped(tmp_path, capsys):
 
 
 def test_text_extension_clean(tmp_path, capsys):
-    _mkfile(tmp_path, "notes.txt", "hello world\n".encode())
+    _mkfile(tmp_path, "notes.txt", b"hello world\n")
     code, out = _run(["verify", "-o", str(tmp_path)], capsys)
     assert code == 0
     assert "1 clean" in out and "warned" in out

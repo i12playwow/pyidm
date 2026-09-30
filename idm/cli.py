@@ -1102,7 +1102,8 @@ def cmd_ignore(args, cfg) -> int:
             return 1
         before = set(verify_ignore_list(cfg))
         current = verify_ignore_add(cfg, names)
-        added, duplicates = [], []
+        added: list[str] = []
+        duplicates: list[str] = []
         for entry in (str(p).strip() for p in names):
             (duplicates if entry in before or entry in added
              else added).append(entry)

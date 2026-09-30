@@ -6,7 +6,6 @@ tests/test_integration.py, driven in-process through the CLI.
 from __future__ import annotations
 
 import json
-from idm.core import DownloadTask
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -14,6 +13,7 @@ import pytest
 
 from idm import gui as G
 from idm.cli import main as cli_main
+from idm.core import DownloadTask
 
 PAYLOAD = bytes(range(256)) * 1024  # 256 KiB deterministic body
 
@@ -57,7 +57,6 @@ def _url(server, path: str) -> str:
 
 # ------------------------------------------------------------------- helper
 def test_batch_payload_pure_helper():
-    from idm.core import DownloadTask
 
     results = [
         DownloadTask(url="http://x/a.zip", filename="a.zip", status="done",

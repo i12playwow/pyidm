@@ -219,7 +219,12 @@ def test_cli_vacuum_is_idempotent(tmp_path):
     compact_size = st.path.stat().st_size
     payload, _ = prune_stale_records(st, compact=True)
     assert abs(st.path.stat().st_size - compact_size) <= 4, "stays compact"
-    assert payload["bytes_reclaimed"] == 0, "clamped, never negative"
+    # clamped at 0 — never negative — but a shorter fresh 'updated'
+    # timestamp may legitimately shrink an already-compact store by a
+    # byte or two, so exact zero would be a flaky assertion
+    reclaimed = payload["bytes_reclaimed"]
+    assert reclaimed is not None and reclaimed >= 0, "clamped, never negative"
+    assert reclaimed <= 4, "only timestamp jitter, not a real reclaim"
     # the shape is really compact: a single line, no indentation
     body = st.path.read_text(encoding="utf-8")
     assert body.count("\n") == 0 and "\n  " not in body

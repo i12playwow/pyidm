@@ -149,7 +149,7 @@ def test_warn_method_silent_on_empty_file(tmp_path):
 
 
 def test_task_note_field_defaults_empty():
-    t = Downloader(config={}, out_dir=".")
+    t = Downloader(config={}, out_dir=".")  # noqa: F841 (Downloader must construct cleanly)
     task = __import__("idm.core", fromlist=["DownloadTask"]).DownloadTask(
         url="https://x/f.mp4")
     assert task.note == ""

@@ -9,8 +9,8 @@ import time
 import pytest
 
 gui = pytest.importorskip("idm.gui")
-from idm import gui as G
 import idm.config as CF
+from idm import gui as G
 
 PLAYLIST = b"#EXTM3U\n#EXT-X-TARGETDURATION:10\n" + b"\x00" * 13
 MP4_HEAD = b"\x00\x00\x00\x18ftypmp44" + b"\x00" * 24

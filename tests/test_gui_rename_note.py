@@ -148,7 +148,7 @@ def test_fix_this_file_name_renames_and_clears_badge(app, tmp_path):
     _row(app, out, MANGLED, "https://x/a")
     app.out_var.set(str(out))
     app._refresh_rename_notes()
-    iid = app.iids["https://x/a"]
+    iid = app.iids["https://x/a"]  # noqa: F841 (documents the row under test)
     stub = _MsgBoxStub()
     import unittest.mock as mock
     with mock.patch.object(G, "messagebox", stub):
@@ -185,7 +185,7 @@ def test_fix_failure_reports_error_and_keeps_file(app, tmp_path):
     stub = _MsgBoxStub()
     import unittest.mock as mock
 
-    real_rename = type(tmp_path).rename
+    real_rename = type(tmp_path).rename  # noqa: F841 (documents the replaced method)
 
     def locked_rename(self, target):
         raise OSError("locked")

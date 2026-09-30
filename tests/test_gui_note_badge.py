@@ -34,7 +34,9 @@ def app(monkeypatch, tmp_path):
 
 
 def test_note_column_exists(app):
-    assert "note" in G.App.__dict__ or True  # sentinel for readability
+    # 'note' is a Treeview column string, not a class attribute — the real
+    # checks are the widget-level ones below (the old `... or True` sentinel
+    # here was a false assertion neutered into a tautology).
     cols = app.tree["columns"]
     assert "note" in cols
     assert app.tree.heading("note")["text"] == "Note"

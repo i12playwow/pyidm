@@ -115,7 +115,7 @@ def test_apply_never_overwrites(tmp_path, capsys):
 
 def test_apply_failed_rename_counts(tmp_path, capsys, monkeypatch):
     _mkfile(tmp_path, MANGLED, PLAYLIST)
-    real_rename = Path.rename
+    real_rename = Path.rename  # noqa: F841 (documents the original being replaced)
 
     def locked_rename(self, target):
         raise OSError("file is locked by another process")

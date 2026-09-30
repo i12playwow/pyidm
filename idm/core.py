@@ -1101,6 +1101,7 @@ class Downloader:
                 resp.close()
 
             if guarded:
+                assert pending is not None  # guarded implies held head bytes
                 part.unlink(missing_ok=True)
                 task.status = "error"
                 task.message = self._guard_message(bytes(pending))
