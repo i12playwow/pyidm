@@ -9,7 +9,7 @@ description = "Batch download manager with expiring-link refresh, resumable down
 requires-python = ">=3.9"
 dependencies = [
     "requests>=2.31",
-    "rich>=13.7",
+    "rich>=15.0.0",
 ]
 
 [project.optional-dependencies]
