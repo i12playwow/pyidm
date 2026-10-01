@@ -1,5 +1,10 @@
 # PyIDM — batch download manager with expiring-link refresh + subtitles
 
+[![CI](https://github.com/i12playwow/pyidm/actions/workflows/ci.yml/badge.svg)](https://github.com/i12playwow/pyidm/actions/workflows/ci.yml)
+[![Release](https://github.com/i12playwow/pyidm/actions/workflows/release.yml/badge.svg)](https://github.com/i12playwow/pyidm/actions/workflows/release.yml)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](pyproject.toml)
+
 An Internet-Download-Manager-style tool for the terminal and desktop:
 
 - **Batch downloads** — queue a list of URLs, download them in parallel with live progress.
