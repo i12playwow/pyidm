@@ -1,0 +1,41 @@
+# Dependabot: keep the dev toolchain current via the protected-main PR flow.
+#
+# Grouping keeps the weekly volume sane: dev-dependency minor/patch bumps are
+# safe together; major bumps and Actions major bumps (breaking-change risk)
+# arrive as individual PRs so they get real scrutiny.
+version: 2
+updates:
+  # Python dependencies (the [dev] extra in pyproject.toml: pytest, ruff,
+  # mypy, coverage, vermin, types-*). Runtime deps are requests + rich.
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      dev-minor-and-patch:
+        applies-to: version-updates
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+    labels:
+      - "dependencies"
+      - "python"
+    open-pull-requests-limit: 5
+
+  # GitHub Actions (checkout, setup-python, upload-artifact, gh-release).
+  # Note: actions majors are intentionally NOT grouped — e.g. actions/checkout
+  # v4 -> v5 can break workflows and deserves its own PR.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      actions-patch:
+        applies-to: version-updates
+        update-types:
+          - "patch"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    open-pull-requests-limit: 5
