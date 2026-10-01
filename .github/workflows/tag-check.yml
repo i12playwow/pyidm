@@ -1,0 +1,27 @@
+name: Tag version check
+
+# Fails a v* tag push whose name doesn't match idm/__init__.py's
+# __version__. The Release workflow runs scripts/check_tag_version.py as
+# its own first step too, so a drifted tag can neither report green here
+# nor publish a release there.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: tag matches idm/__init__.py version
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify tag matches package version
+        run: python scripts/check_tag_version.py

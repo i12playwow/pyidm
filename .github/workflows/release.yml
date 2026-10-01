@@ -34,6 +34,12 @@ jobs:
         with:
           python-version: "3.12"
 
+      # Gate before anything builds or publishes: the tag must match the
+      # package version (same script as the tag-check workflow).
+      - name: Verify tag matches idm/__init__.py version
+        shell: bash
+        run: python scripts/check_tag_version.py
+
       - name: Build portable bundle
         shell: bash
         run: |
