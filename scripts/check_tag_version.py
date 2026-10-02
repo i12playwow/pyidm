@@ -9,6 +9,12 @@ version. Used in two places:
 * .github/workflows/release.yml    -> first gate; a drifted tag can never
   build, smoke-test, or publish a release
 
+A workflow_dispatch run on a non-tag ref is the advertised pre-tag dry run
+(build + smoke test only; publish steps are tag-gated), so the tag
+comparison is skipped there. Any run on a tag ref — pushed or dispatched —
+is still enforced before publish steps can fire, and the __init__ <->
+pyproject.toml consistency check always runs.
+
 Stdlib-only and 3.9+-compatible so it runs on any runner's Python.
 Exits 1 with a GitHub Actions error annotation on mismatch.
 """
@@ -48,6 +54,14 @@ def main() -> None:
     if declared != version:
         fail(f"idm/__init__.py has {version!r} but pyproject.toml has "
              f"{declared!r}; bump both together")
+
+    event = os.environ.get("GITHUB_EVENT_NAME", "")
+    ref = os.environ.get("GITHUB_REF", "")
+    if event == "workflow_dispatch" and not ref.startswith("refs/tags/"):
+        print(f"workflow_dispatch dry run on {ref or 'a non-tag ref'}: "
+              f"skipping the tag comparison; package version is {version} "
+              f"(pyproject.toml agrees)")
+        return
 
     expected = f"v{version}"
     if tag != expected:
