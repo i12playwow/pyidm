@@ -247,6 +247,7 @@ approval is automatic.
 | [`build_portable.bat`](build_portable.bat) | builds the bundle, LF-normalizes copied sources, drops pip's machine-specific launchers, then packs with `portable_zip.py` |
 | [`portable/requirements.txt`](portable/requirements.txt) | exact bundle dependency pins — no PyPI drift between rebuilds |
 | [`.github/workflows/release.yml`](.github/workflows/release.yml) | tag gate → build → smoke test → zip-root assert → upload → publish, then `sync-repo-zip` commits the published bytes + regenerated sidecar to `main` via an auto-merged PR (bot-opened, so it needs one maintainer workflow approval — see [above](#why-the-sync-pr-pauses-for-one-approval)) |
+| [`.github/workflows/repro.yml`](.github/workflows/repro.yml) | scheduled probe (weekly, plus `workflow_dispatch`): rebuilds the bundle from the **latest release tag**, then fails if the fresh digest drifts from the digest GitHub computed for the published asset — the same guarantee, re-tested from the outside after the fact |
 | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | vermin / ruff / mypy / pytest keep the tooling itself honest |
 
 Changes to the build scripts that affect this guarantee should say so in
