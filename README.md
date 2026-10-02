@@ -36,7 +36,9 @@ Without installing, run via `python -m idm.cli …` / `python -m idm.gui`.
 **Portable bundle (recommended):** `portable\PyIDM\` — copy the folder anywhere
 (including other Windows PCs) and run `pyidm.bat` (CLI) or `pyidm-gui.bat`
 (GUI). It bundles python.org's embeddable Python plus Tk support, so no
-install is needed. A ready-made archive is at `portable\PyIDM-portable.zip`.
+install is needed. A ready-made archive is committed at
+`portable\PyIDM-portable.zip` (with a `.sha256` checksum; also attached
+to each [GitHub release](https://github.com/i12playwow/pyidm/releases/latest)).
 Rebuild with `build_portable.bat`.
 
 **Why not the single-file exes anymore:** Windows 11 **Smart App Control**
