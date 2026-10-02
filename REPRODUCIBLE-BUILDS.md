@@ -57,20 +57,24 @@ certutil -hashfile PyIDM-portable.zip SHA256
 ### 2. Compare against the release's server-side digest
 
 GitHub computes the sha256 of each asset itself, so this comparison relies
-on nothing committed by this project:
+on nothing committed by this project. Look up the **current release**:
 
 ```bash
-gh api repos/i12playwow/pyidm/releases/tags/v1.11.78 --jq '.assets[0].digest'
-# sha256:31456bc64df517d5d000f66a864594934f9f94be4ffab48be85c0bdd5a978836
+gh api repos/i12playwow/pyidm/releases/latest --jq '.tag_name + " " + .assets[0].digest'
+# v1.11.79 sha256:be7e6ed4d2a3e8a79eb4e033613b5bc1b8a693280a72aca3536a1f374cc20c64
 ```
 
 Without `gh`, curl the API:
 
 ```bash
-curl -s https://api.github.com/repos/i12playwow/pyidm/releases/tags/v1.11.78 \
-  | python -c "import json,sys; a=json.load(sys.stdin)['assets'][0]; print(a['name'], a['digest'])"
-# PyIDM-portable.zip sha256:31456bc64df517d5d000f66a864594934f9f94be4ffab48be85c0bdd5a978836
+curl -s https://api.github.com/repos/i12playwow/pyidm/releases/latest \
+  | python -c "import json,sys; r=json.load(sys.stdin); print(r['tag_name'], r['assets'][0]['name'], r['assets'][0]['digest'])"
+# v1.11.79 PyIDM-portable.zip sha256:be7e6ed4d2a3e8a79eb4e033613b5bc1b8a693280a72aca3536a1f374cc20c64
 ```
+
+To pin an older release, use `/releases/tags/v<version>` instead of
+`/releases/latest` — a published asset's digest is immutable, so a
+digest once looked up stays valid for that release forever.
 
 ### 3. Compare against the repo copy
 
@@ -80,15 +84,17 @@ curl -s https://api.github.com/repos/i12playwow/pyidm/releases/tags/v1.11.78 \
 git clone https://github.com/i12playwow/pyidm
 cd pyidm
 cat portable/PyIDM-portable.zip.sha256
-# 31456bc64df517d5d000f66a864594934f9f94be4ffab48be85c0bdd5a978836  PyIDM-portable.zip
+# be7e6ed4d2a3e8a79eb4e033613b5bc1b8a693280a72aca3536a1f374cc20c64  PyIDM-portable.zip
 ```
 
+(Sample output shows v1.11.79, the newest release at the time of writing.)
 For an older release, find its sync commit and read the sidecar there:
 
 ```bash
 git log --oneline -- portable/PyIDM-portable.zip
-# 5cecf7b Merge pull request #20 from i12playwow/sync/portable-zip-v1.11.78
-git show 5cecf7b:portable/PyIDM-portable.zip.sha256
+# b069a64 Sync portable/PyIDM-portable.zip with release v1.11.79
+# 05cf80c Sync portable/PyIDM-portable.zip with release v1.11.78
+git show b069a64:portable/PyIDM-portable.zip.sha256
 ```
 
 A match against any of the three proves the file is exactly what CI built,
@@ -111,12 +117,15 @@ audit — for that, read the source and the build script.
 
 ### Build
 
+Check out the tag of the release you want to rebuild (v1.11.79 in the
+examples below):
+
 cmd:
 
 ```bat
 git clone https://github.com/i12playwow/pyidm
 cd pyidm
-git checkout v1.11.78
+git checkout v1.11.79
 set "PY312=C:\Program Files\Python312"
 build_portable.bat
 ```
@@ -126,7 +135,7 @@ Git Bash:
 ```bash
 git clone https://github.com/i12playwow/pyidm
 cd pyidm
-git checkout v1.11.78
+git checkout v1.11.79
 PY312="C:/Program Files/Python312" cmd //c '.\build_portable.bat'
 ```
 
@@ -138,20 +147,26 @@ cd portable/PyIDM && sh smoke_test.sh
 
 ### Compare
 
+First look up the expected digest for the release you rebuilt (sample
+output here and below shows v1.11.79 — always fetch the live values):
+
+```bash
+curl -s https://api.github.com/repos/i12playwow/pyidm/releases/latest \
+  | python -c "import json,sys; r=json.load(sys.stdin); print(r['tag_name'], r['assets'][0]['digest'].removeprefix('sha256:'))"
+# v1.11.79 be7e6ed4d2a3e8a79eb4e033613b5bc1b8a693280a72aca3536a1f374cc20c64
+```
+
+Then hash your rebuild and compare against it:
+
 ```bash
 sha256sum portable/PyIDM-portable.zip
 ```
 
-For v1.11.78 the expected value is:
-
-```
-31456bc64df517d5d000f66a864594934f9f94be4ffab48be85c0bdd5a978836
-```
-
 A match means your machine reproduced the release byte-for-byte — the
 published zip was built from this exact source with these exact tools.
-(For releases built before the pin file — v1.11.78 and earlier — expect
-only content-equality; see the caveats below.)
+Releases from **v1.11.79 on** are byte-reproducible this way; releases
+built before the pin file (v1.11.78 and earlier) expect only
+content-equality — see the caveats below.
 
 ## When the hash doesn't match
 
@@ -171,7 +186,7 @@ Two inputs beyond the source tree can legitimately change the bytes:
    change the bytes. Releases up to v1.11.78 predate that file and used an
    unpinned `pip install requests rich`; rebuilding one of those tags may
    resolve newer versions, and those pre-pin bundles also mirror the
-   builder's `core.autocrlf` line endings. From the next release on,
+   builder's `core.autocrlf` line endings. From **v1.11.79 on**, the
    `build_portable.bat` LF-normalizes every copied source, so the
    checkout's line-ending settings stop mattering. The release bundle
    records exactly what it shipped — e.g.
