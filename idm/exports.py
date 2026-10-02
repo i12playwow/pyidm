@@ -189,7 +189,7 @@ class ExportDialogsMixin(_MixinBase):
         win.title("PyIDM setup — OpenSubtitles API key")
         win.resizable(False, False)
         win.transient(self)
-        win.grab_set()
+        _g._grab_modal(win)
         frm = ttk.Frame(win, padding=16)
         frm.pack(fill="both", expand=True)
         if first_run:
@@ -345,7 +345,7 @@ class ExportDialogsMixin(_MixinBase):
         dlg = tk.Toplevel(self)
         dlg.title("Filter history export")
         dlg.transient(self)
-        dlg.grab_set()
+        _g._grab_modal(dlg)
         dlg.resizable(False, False)
         prefs = _g.load_export_prefs().get("history", {})
         providers = _g.history_providers(_g.load_subs_history())
@@ -523,7 +523,7 @@ class ExportDialogsMixin(_MixinBase):
         dlg = tk.Toplevel(self)
         dlg.title("Export download state")
         dlg.transient(self)
-        dlg.grab_set()
+        _g._grab_modal(dlg)
         dlg.resizable(False, False)
         prefs = _g.load_export_prefs().get("downloads", {})
         ttk.Label(dlg, text="Format:").grid(row=0, column=0, sticky="e",

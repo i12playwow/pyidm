@@ -52,7 +52,7 @@ class QueryDialogsMixin(_MixinBase):
         dlg = tk.Toplevel(self)
         dlg.title(f"Run query — {source}")
         dlg.transient(self)
-        dlg.grab_set()
+        _g._grab_modal(dlg)
         dlg.resizable(False, False)
         recent = _g._recent_queries_for(source)
         ttk.Label(dlg, text="Query (jq-style):").grid(row=0, column=0,

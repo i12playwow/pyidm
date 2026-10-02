@@ -241,6 +241,29 @@ STATUS_COLORS = {
 }
 
 
+def _grab_modal(win: tk.Misc, attempts: int = 5, delay: float = 0.05) -> None:
+    """Best-effort modal grab for a dialog window.
+
+    Tk treats every interpreter as its own application: if another one holds
+    a grab (another PyIDM window, a leaked test app, any other process on
+    the desktop), grab_set() raises TclError "grab failed: another
+    application has grab". Retry briefly — foreign grabs are usually
+    transient — then give up quietly: the dialog stays open and usable,
+    just non-modal, which beats crashing the whole dialog flow.
+    """
+    for attempt in range(attempts):
+        try:
+            win.update_idletasks()       # let the dialog map before grabbing
+            win.grab_set()
+            return
+        except tk.TclError as e:
+            if "grab failed" not in str(e):
+                raise
+            if attempt == attempts - 1:
+                return
+            time.sleep(delay)
+
+
 def _ask_choose_items(title: str, prompt: str, items: list[str],
                       preselect: list[str] | None = None):
     """Modal multi-select picker: returns the chosen items (all by default
@@ -250,7 +273,7 @@ def _ask_choose_items(title: str, prompt: str, items: list[str],
     dlg = tk.Toplevel()
     dlg.title(title)
     dlg.transient()
-    dlg.grab_set()
+    _grab_modal(dlg)
     ttk.Label(dlg, text=prompt, wraplength=380, justify="left").pack(
         anchor="w", padx=12, pady=(12, 4))
     box = tk.Listbox(dlg, selectmode="extended", width=52, height=min(14, max(4, len(items))),

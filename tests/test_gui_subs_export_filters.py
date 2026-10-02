@@ -160,6 +160,7 @@ def test_filter_dialog_cancel_returns_none(app, monkeypatch):
         "grab_set": lambda s: None, "resizable": lambda s, *a: None,
         "destroy": lambda s: None, "protocol": lambda s, *a: None,
         "bind": lambda s, *a: None, "wait_window": lambda s: None,
+        "update_idletasks": lambda s: None,
         "grid": lambda s, *a, **k: None})())
     monkeypatch.setattr(G.ttk, "Label", lambda *a, **k: type("L", (), {
         "grid": lambda s, *a, **k: None, "config": lambda s, **k: None,
