@@ -81,6 +81,9 @@ jobs:
   # with GitHub-native auto-merge enabled: the PR merges itself once the six
   # required checks pass. Requires the repo setting "Allow auto-merge"
   # (enabled once in repo settings; not settable by GITHUB_TOKEN).
+  # Note: CI does not start on a PR opened by github-actions[bot] until a
+  # maintainer approves its run once; the job prints the approve link and
+  # records it in the run summary so the pause is never silent.
   sync-repo-zip:
     name: sync committed zip with the published release
     runs-on: ubuntu-latest
@@ -210,4 +213,34 @@ jobs:
           else:
               raise SystemExit(f"auto-merge enable failed: {status} {resp} "
                                "(is the repo setting 'Allow auto-merge' on?)")
+
+          # CI never starts on the bot-opened PR until a maintainer approves
+          # its run once (repo setting "Require approval for all external
+          # contributors" covers github-actions[bot] too). Auto-merge is
+          # armed, so the PR lands itself right after that approval -- make
+          # the pause impossible to miss: annotate this run and record the
+          # approve link in the step summary. Best-effort only.
+          pr_url = f"https://github.com/{repo}/pull/{number}"
+          runs_url = f"{pr_url}/checks"
+          try:
+              _, full = api("GET", f"/repos/{repo}/pulls/{number}")
+              _, rr = api("GET", f"/repos/{repo}/actions/runs"
+                          f"?head_sha={full['head']['sha']}")
+              pending = [r for r in rr.get("workflow_runs", [])
+                         if r.get("event") == "pull_request"
+                         and r.get("status") == "action_required"]
+              if pending:
+                  runs_url = pending[0]["html_url"]
+          except Exception:
+              pass                          # guidance below still prints
+          msg = (f"PR #{number} is opened by github-actions[bot]: approve "
+                 f"its CI run once at {runs_url} (Actions > Approve and "
+                 "run); auto-merge then lands it automatically")
+          print(f"::warning::{msg}")
+          summary = os.environ.get("GITHUB_STEP_SUMMARY")
+          if summary:
+              with open(summary, "a", encoding="utf-8") as f:
+                  f.write(f"## Sync PR #{number}\n\n{msg}\n\n"
+                          "No CI runs on bot-opened PRs until approved "
+                          "once; auto-merge is already armed.\n")
           PY

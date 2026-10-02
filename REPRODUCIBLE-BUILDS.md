@@ -203,6 +203,27 @@ xcopy /e /i /q /y idm portable\PyIDM\site\idm
 "%PY312%\python.exe" portable_zip.py portable\PyIDM portable\PyIDM-portable.zip
 ```
 
+## Why the sync PR pauses for one approval
+
+The `sync-repo-zip` job opens its PR as **github-actions[bot]**, and CI
+does not start on PRs opened by that identity — the workflow run sits in
+`action_required` until a maintainer approves it once (the PR's **Checks**
+tab links straight to the run; **Actions → the pending run → "Approve and
+run"**). This is GitHub's first-contribution approval gate applied to the
+bot; the exemption setting under Actions settings ("GitHub Actions can
+create and approve pull requests") only governs approving PRs, not running
+workflows on them, so it does not lift this.
+
+Nothing else is needed: auto-merge is armed on the PR before the pause, so
+the moment the approved run finishes green, the six required checks pass
+and the PR merges itself. The release job makes the pause impossible to
+miss — it prints a warning annotation carrying the pending run's approve
+link and writes the same to its run summary.
+
+Each release's sync PR lives on a fresh branch (`sync/portable-zip-v<version>`),
+so expect **one approval click per release**. Everything downstream of the
+approval is automatic.
+
 ## How this is enforced
 
 | Piece | Role |
@@ -210,7 +231,7 @@ xcopy /e /i /q /y idm portable\PyIDM\site\idm
 | [`portable_zip.py`](portable_zip.py) | deterministic packing (sorted, epoch timestamps, fixed attributes) |
 | [`build_portable.bat`](build_portable.bat) | builds the bundle, LF-normalizes copied sources, drops pip's machine-specific launchers, then packs with `portable_zip.py` |
 | [`portable/requirements.txt`](portable/requirements.txt) | exact bundle dependency pins — no PyPI drift between rebuilds |
-| [`.github/workflows/release.yml`](.github/workflows/release.yml) | tag gate → build → smoke test → zip-root assert → upload → publish, then `sync-repo-zip` commits the published bytes + regenerated sidecar to `main` via an auto-merged PR |
+| [`.github/workflows/release.yml`](.github/workflows/release.yml) | tag gate → build → smoke test → zip-root assert → upload → publish, then `sync-repo-zip` commits the published bytes + regenerated sidecar to `main` via an auto-merged PR (bot-opened, so it needs one maintainer workflow approval — see [above](#why-the-sync-pr-pauses-for-one-approval)) |
 | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | vermin / ruff / mypy / pytest keep the tooling itself honest |
 
 Changes to the build scripts that affect this guarantee should say so in
