@@ -1,0 +1,27 @@
+# Pinned runtime dependencies for the portable bundle.
+#
+# build_portable.bat installs exactly these versions into the bundle's
+# site\ directory (pip install --target site -r this file), so rebuilding
+# a tag produces the same bundle regardless of when PyPI is queried.
+# The pins match the dependencies shipped in the committed
+# PyIDM-portable.zip (site\*.dist-info inside the zip is the ground truth).
+#
+# To update: bump the pins here deliberately (ideally together with the
+# pyproject.toml floors), run build_portable.bat, smoke-test the bundle,
+# and cut the next release — the release build reads this file, so the
+# published zip, the repo copy, and these pins stay in step.
+# See REPRODUCIBLE-BUILDS.md.
+
+# direct dependencies (pyproject.toml [project].dependencies)
+requests==2.34.2
+rich==15.0.0
+
+# transitive closure — requests: certifi, charset-normalizer, idna, urllib3;
+# rich: markdown-it-py -> mdurl, pygments
+certifi==2026.7.22
+charset-normalizer==3.5.2
+idna==3.20
+markdown-it-py==4.2.0
+mdurl==0.1.2
+pygments==2.21.0
+urllib3==2.8.0

@@ -106,7 +106,8 @@ audit — for that, read the source and the build script.
   `zlib1.dll`, `tcl\`, and `Lib\tkinter\` from it into the bundle.
 - Network access: the script downloads the embeddable runtime
   (`python-3.12.10-embed-amd64.zip`, pinned via `VER` in the script; cached
-  as `portable/python-embed.zip`) and pip-installs `requests` + `rich`.
+  as `portable/python-embed.zip`) and pip-installs the exact dependency set
+  pinned in [`portable/requirements.txt`](portable/requirements.txt).
 
 ### Build
 
@@ -126,7 +127,7 @@ Git Bash:
 git clone https://github.com/i12playwow/pyidm
 cd pyidm
 git checkout v1.11.78
-PY312="C:/Program Files/Python312" cmd //c build_portable.bat
+PY312="C:/Program Files/Python312" cmd //c '.\build_portable.bat'
 ```
 
 Smoke-test the result the way CI does (Git Bash):
@@ -149,21 +150,31 @@ For v1.11.78 the expected value is:
 
 A match means your machine reproduced the release byte-for-byte — the
 published zip was built from this exact source with these exact tools.
+(For releases built before the pin file — v1.11.78 and earlier — expect
+only content-equality; see the caveats below.)
 
 ## When the hash doesn't match
 
 Two inputs beyond the source tree can legitimately change the bytes:
 
-1. **Your CPython 3.12 patch build.** `portable_zip.py` runs under your
-   local `PY312` interpreter, and its zlib is what compresses the deflate
-   streams. It also supplies the copied `zlib1.dll` / Tk DLLs. Same CPython
-   patch release as the CI build → identical bytes; a different patch may
-   not. The exact Python used by a release run is in its workflow log
-   (`pythonLocation`).
-2. **pip-resolved dependency versions.** `build_portable.bat` installs
-   `requests` and `rich` unpinned, so a rebuild months later can pick up
-   newer versions and produce a legitimately different bundle. The release
-   bundle records exactly what it shipped — e.g.
+1. **Your CPython 3.12 build.** `portable_zip.py` runs under your local
+   `PY312` interpreter, and its zlib is what compresses the deflate
+   streams; it also supplies the copied `zlib1.dll` / Tk DLLs. Same CPython
+   patch release as the CI build → identical bytes (the release log shows
+   the exact Python: `pythonLocation`). The one wildcard was removed from
+   the bundle outright: pip's console-script launchers embed the builder's
+   interpreter path and vary run to run, so `build_portable.bat` drops
+   `site\bin` and its `RECORD` entries — the bundle never used them.
+2. **Dependency versions — pre-pin releases only.** The bundle installs
+   from the pinned [`portable/requirements.txt`](portable/requirements.txt),
+   so rebuilds get identical dependency versions and PyPI drift cannot
+   change the bytes. Releases up to v1.11.78 predate that file and used an
+   unpinned `pip install requests rich`; rebuilding one of those tags may
+   resolve newer versions, and those pre-pin bundles also mirror the
+   builder's `core.autocrlf` line endings. From the next release on,
+   `build_portable.bat` LF-normalizes every copied source, so the
+   checkout's line-ending settings stop mattering. The release bundle
+   records exactly what it shipped — e.g.
    `PyIDM/site/requests-<version>.dist-info/`.
 
 When only those differ, the **contents** still match. Compare trees:
@@ -174,12 +185,15 @@ unzip -q portable/PyIDM-portable.zip -d /tmp/rebuild
 diff -r /tmp/release/PyIDM /tmp/rebuild/PyIDM
 ```
 
-Differences confined to `site/*.dist-info` and library files → dependency
-drift; identical trees → pure compression drift. Anything unexpected under
-`site/idm/` → stop and investigate.
+Differences confined to `site/*.dist-info` (`REQUESTED` markers, and
+`RECORD` lines for the `site/bin` launchers that pre-pin bundles shipped
+but new builds drop) → build-machine and pre-pin artifacts, not real
+drift; identical trees → pure compression drift. Anything unexpected
+under `site/idm/` → stop and investigate.
 
-To force a full match, reinstall the exact dependency versions recorded in
-the release bundle into `portable/PyIDM/site`, then repack:
+To force a full match when rebuilding a pre-pin release, reinstall the
+exact dependency versions recorded in that release's bundle into
+`portable/PyIDM/site`, then repack:
 
 ```bat
 rmdir /s /q portable\PyIDM\site
@@ -194,7 +208,8 @@ xcopy /e /i /q /y idm portable\PyIDM\site\idm
 | Piece | Role |
 |-------|------|
 | [`portable_zip.py`](portable_zip.py) | deterministic packing (sorted, epoch timestamps, fixed attributes) |
-| [`build_portable.bat`](build_portable.bat) | builds the bundle, then packs it with `portable_zip.py` |
+| [`build_portable.bat`](build_portable.bat) | builds the bundle, LF-normalizes copied sources, drops pip's machine-specific launchers, then packs with `portable_zip.py` |
+| [`portable/requirements.txt`](portable/requirements.txt) | exact bundle dependency pins — no PyPI drift between rebuilds |
 | [`.github/workflows/release.yml`](.github/workflows/release.yml) | tag gate → build → smoke test → zip-root assert → upload → publish, then `sync-repo-zip` commits the published bytes + regenerated sidecar to `main` via an auto-merged PR |
 | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | vermin / ruff / mypy / pytest keep the tooling itself honest |
 
