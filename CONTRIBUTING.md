@@ -42,7 +42,7 @@ jobs fail fast so you can stop a doomed run early. To reproduce locally
 pip install -e ".[dev]"
 ruff check .
 mypy                      # py39 target, win32 platform — see [tool.mypy]
-coverage run -m pytest tests     # 628 tests; also enforces fail_under=80 on idm/
+coverage run -m pytest tests     # full suite; also enforces fail_under=80 on idm/
 vermin -t=3.9- --violations --no-tips idm tests bench portable_zip.py
 ```
 
@@ -82,9 +82,16 @@ If a change genuinely needs a newer API, gate it explicitly with
 
 Releases are tag-driven, not manual:
 
-1. Confirm `idm/__init__.py` `__version__` and `pyproject.toml` `version`
-   agree — the tag must match the software version (this bit us once:
-   `v1.11.53` was tagged against 1.11.77 code and had to be deleted).
+1. The tag must match the software version — this is **enforced**, not
+   convention. A `v*` tag push runs the tag-check workflow, and the
+   Release workflow refuses to build or publish until
+   `scripts/check_tag_version.py` passes; `__version__` and
+   `pyproject.toml` are pinned together by
+   [tests/test_version_consistency.py](tests/test_version_consistency.py).
+   (This bit us once: `v1.11.53` was tagged against 1.11.77 code and had
+   to be deleted.) The tag check fires only on tag pushes — it is
+   deliberately *not* one of the six required checks, which gate PR
+   merges into `main`.
 2. Tag from a fully green `main`:
    ```bash
    git tag -a v<version> -m "PyIDM <version>"
@@ -99,6 +106,17 @@ Releases are tag-driven, not manual:
 
 ## Dependency updates
 
-Dependabot opens weekly PRs (grouped minor/patch for dev deps, individual
-PRs for major bumps and Actions majors) and immediate PRs for security
-fixes. They follow the same six-check gate; treat them like any other PR.
+Dependabot opens PRs that follow the exact same branch → PR → six-checks →
+merge flow (`.github/dependabot.yml`):
+
+- **pip** (weekly): dev-dependency minor+patch bumps are grouped into one
+  PR; majors arrive individually.
+- **github-actions** (weekly): patch-level bumps grouped; majors — e.g.
+  `actions/checkout` v4 → v7 — arrive as individual PRs because they can
+  break workflows and deserve their own scrutiny.
+- **security fixes**: immediate, whenever a vulnerability alert fires.
+
+Treat these like any other PR: review the changelog, let the six checks
+run, merge or close. Heads-up: a batch of Dependabot PRs at once can
+queue behind the free tier's ~20 concurrent CI jobs, so checks may take
+longer than usual — that's congestion, not failure.
