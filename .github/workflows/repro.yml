@@ -1,0 +1,136 @@
+name: Reproducibility probe
+
+# Drift alarm for the portable bundle: rebuild it from the **latest release
+# tag** and compare the fresh digest against the digest GitHub computed for
+# the published release asset. A failure means the same tag no longer
+# produces the published bytes (dependency pins, build scripts, or the
+# toolchain drifted since publish) — loud and early, instead of the next
+# release shipping a surprise. See REPRODUCIBLE-BUILDS.md.
+#
+# Runs on:
+#   * weekly schedule (Mondays 03:20 UTC)
+#   * workflow_dispatch (manual probe, e.g. right after a release)
+on:
+  schedule:
+    - cron: "20 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: repro-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  rebuild-and-compare:
+    name: rebuild latest release, compare digest
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Resolve latest release tag
+        id: latest
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="$(curl -fsSL \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/releases/latest" \
+            | jq -r '.tag_name')"
+          if [ -z "$tag" ] || [ "$tag" = "null" ]; then
+            echo "::error::could not resolve the latest release tag"
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "Rebuilding from latest release: $tag"
+
+      - name: Checkout the release tag
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.latest.outputs.tag }}
+          persist-credentials: false
+
+      # The probe pins the host CPython to the exact patch of the embeddable
+      # zip (VER in build_portable.bat) instead of release.yml's floating
+      # "3.12": a deterministic rebuild needs a deterministic interpreter, so
+      # the probe only fails when something actually changed. Parsed, not
+      # hardcoded — it follows VER automatically on the next release.
+      - name: Read the pinned CPython version
+        id: ver
+        shell: bash
+        run: |
+          ver="$(sed -n 's/^set "VER=\([0-9.]*\)"/\1/p' build_portable.bat | head -n 1)"
+          if [ -z "$ver" ]; then
+            echo "::error::could not parse VER from build_portable.bat"
+            exit 1
+          fi
+          echo "ver=$ver" >> "$GITHUB_OUTPUT"
+          echo "Host CPython pinned to $ver (embed zip VER)"
+
+      # setup-python is the Tk source install, exactly like release.yml:
+      # PY312 points build_portable.bat at it (the script defaults to a
+      # developer's LOCALAPPDATA layout otherwise).
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ steps.ver.outputs.ver }}
+
+      - name: Build portable bundle
+        shell: bash
+        run: |
+          PY312="$(cygpath -w "$(dirname "$(command -v python)")")"
+          echo "PY312=$PY312"
+          PY312="$PY312" cmd //c build_portable.bat
+
+      - name: Smoke-test the fresh bundle
+        shell: bash
+        run: |
+          cd portable/PyIDM
+          sh smoke_test.sh
+
+      - name: Assert zip has a stable PyIDM/ root
+        shell: bash
+        run: |
+          python -c "import zipfile; n = zipfile.ZipFile('portable/PyIDM-portable.zip').namelist(); assert n and all(x.startswith('PyIDM/') for x in n), n[:5]; print('zip root ok:', len(n), 'files')"
+
+      - name: Compare digest with the published release asset
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.latest.outputs.tag }}
+        run: |
+          fresh="$(sha256sum portable/PyIDM-portable.zip | cut -d' ' -f1)"
+
+          published="$(curl -fsSL \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" \
+            | jq -r '[.assets[] | select(.name == "PyIDM-portable.zip")][0].digest // empty' \
+            | sed 's/^sha256://')"
+
+          summary="${GITHUB_STEP_SUMMARY}"
+          {
+            echo "## Reproducibility probe: ${TAG}"
+            echo
+            echo "| source | sha256 |"
+            echo "|--------|--------|"
+            echo "| fresh rebuild | \`${fresh}\` |"
+            echo "| published asset (PyIDM-portable.zip) | \`${published}\` |"
+            echo
+          } > "$summary"
+
+          if [ -z "$published" ]; then
+            echo "::error::release ${TAG} has no PyIDM-portable.zip asset (or no digest) — cannot verify"
+            echo "Result: **cannot verify** — no published asset digest." >> "$summary"
+            exit 1
+          fi
+
+          if [ "$fresh" = "$published" ]; then
+            echo "::notice::digests match: ${fresh}"
+            echo "Result: **match** — rebuilding ${TAG} reproduces the published bytes." >> "$summary"
+          else
+            echo "::error::digest drift on ${TAG}: fresh ${fresh} != published ${published}"
+            echo "Result: **DRIFT** — rebuilding ${TAG} no longer reproduces the published bytes (pins, build scripts, or toolchain changed since publish)." >> "$summary"
+            exit 1
+          fi
