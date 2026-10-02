@@ -10,7 +10,8 @@ idm.state.json
 coverage-py*.xml
 # --- generated build/dev artifacts (initial-commit scope decision) ---
 portable/PyIDM/
-portable/PyIDM-portable.zip
+# NOTE: portable/PyIDM-portable.zip is deliberately COMMITTED (repo copy of
+# the v1.11.77 release bundle, sha256 sidecar alongside). Don't re-add it here.
 portable/python-embed.zip
 dist/
 .mypy_cache/
