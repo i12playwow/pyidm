@@ -96,7 +96,7 @@ class AboutDialogsMixin(_MixinBase):
         win.title(f"Edit config: {key}")
         win.resizable(False, False)
         win.transient(self)
-        win.grab_set()
+        _g._grab_modal(win)
         frm = ttk.Frame(win, padding=14)
         frm.pack(fill="both", expand=True)
         ttk.Label(frm, text=f"key: {key}", font=("TkDefaultFont", 11, "bold")).pack(anchor="w")

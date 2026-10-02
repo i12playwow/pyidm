@@ -765,8 +765,14 @@ def test_main_tables_save_colw_on_close(app, dl_store, monkeypatch):
     shown_video = app.subs_tree.column("video", "width")
     shown_cues = app.subs_tree.column("cues", "width")
     assert str(app.protocol("WM_DELETE_WINDOW")).endswith("_on_close")
-    monkeypatch.setattr(app, "destroy", lambda: None)  # keep teardown valid
-    app._on_close()                             # the [X] route
+    # Patch destroy only for this call. A bare monkeypatch.setattr would be
+    # undone AFTER the fixture teardown — which calls this same no-op — so
+    # the whole Tk interpreter would leak and, once anything grabs on it
+    # (Tk counts every interpreter as its own application), poison every
+    # later grab_set() in the run.
+    with monkeypatch.context() as m:
+        m.setattr(app, "destroy", lambda: None)  # keep the app alive for asserts
+        app._on_close()                          # the [X] route
     dl = G.load_export_prefs()["table:downloads"]["colw"]
     hist = G.load_export_prefs()["table:history"]["colw"]
     assert dl["url"] == shown_url and dl["speed"] == shown_speed
