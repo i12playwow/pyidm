@@ -39,7 +39,9 @@ Without installing, run via `python -m idm.cli …` / `python -m idm.gui`.
 install is needed. A ready-made archive is committed at
 `portable\PyIDM-portable.zip` (with a `.sha256` checksum; also attached
 to each [GitHub release](https://github.com/i12playwow/pyidm/releases/latest)).
-Rebuild with `build_portable.bat`.
+Rebuild with `build_portable.bat`. Verifying a download by sha256 — and
+rebuilding it byte-for-byte — is documented in
+[REPRODUCIBLE-BUILDS.md](REPRODUCIBLE-BUILDS.md).
 
 **Why not the single-file exes anymore:** Windows 11 **Smart App Control**
 (SAC) blocks freshly built unsigned binaries — it has no allowlist, no

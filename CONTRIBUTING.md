@@ -108,7 +108,8 @@ Releases are tag-driven, not manual:
    regenerated `.sha256`) via a PR that auto-merges once the six required
    checks pass — the repo copy always tracks the latest release, with no
    manual step. (Requires the repo's "Allow auto-merge" setting, which is
-   enabled.)
+   enabled.) See [REPRODUCIBLE-BUILDS.md](REPRODUCIBLE-BUILDS.md) for the
+   sha256 verification recipe (release asset ↔ repo copy ↔ rebuild).
 
 ## Dependency updates
 
