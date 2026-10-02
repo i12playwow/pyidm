@@ -41,8 +41,16 @@ xcopy /e /i /q /y "%PY312%\Lib\tkinter" "%OUT%\python\Lib\tkinter" >nul
 >>"%OUT%\python\python312._pth" echo DLLs
 >>"%OUT%\python\python312._pth" echo ..\site
 
-echo Installing dependencies into site\ ...
-"%PY%" -m pip install -q --target "%OUT%\site" requests rich || exit /b 1
+echo Installing pinned dependencies into site\ ...
+"%PY%" -m pip install -q --target "%OUT%\site" -r "%ROOT%portable\requirements.txt" || exit /b 1
+
+rem pip generates console-script launchers under site\bin (idna.exe,
+rem pygmentize.exe, ...): they embed the builder's interpreter path and vary
+rem run to run, which would break byte-stable rebuilds -- and the bundle
+rem never uses them (the launchers run python.exe directly). Drop them and
+rem the RECORD lines that hash them.
+if exist "%OUT%\site\bin" rmdir /s /q "%OUT%\site\bin"
+powershell -NoProfile -Command "$n=[char]10; Get-ChildItem -Recurse -File -Filter RECORD '%OUT%\site' | ForEach-Object { $t=[IO.File]::ReadAllText($_.FullName); $t=($t -split $n | Where-Object { -not $_.StartsWith('../../bin/') }) -join $n; [IO.File]::WriteAllText($_.FullName,$t) }"
 
 echo Copying the idm package ...
 xcopy /e /i /q /y "%ROOT%idm" "%OUT%\site\idm" >nul
@@ -53,7 +61,11 @@ rem shells a native launcher that never goes through cmd.exe at all.
 copy /y "%ROOT%portable\cli_main.py" "%OUT%\cli_main.py" || exit /b 1
 copy /y "%ROOT%portable\pyidm.sh" "%OUT%\pyidm.sh" >nul || exit /b 1
 copy /y "%ROOT%portable\smoke_test.sh" "%OUT%\smoke_test.sh" >nul || exit /b 1
-powershell -NoProfile -Command "foreach ($f in 'pyidm.sh','smoke_test.sh') { $p=\"%OUT%\\$f\"; $t=[IO.File]::ReadAllText($p); $t=$t.Replace([string][char]13+[string][char]10,[string][char]10); [IO.File]::WriteAllText($p,$t) }"
+rem LF-normalize every copied text source (launcher scripts, cli_main.py,
+rem and the idm package): the bundle bytes must not depend on the builder's
+rem core.autocrlf setting, or deterministic zips stop comparing equal.
+powershell -NoProfile -Command "foreach ($f in 'pyidm.sh','smoke_test.sh','cli_main.py') { $p=\"%OUT%\\$f\"; $t=[IO.File]::ReadAllText($p); $t=$t.Replace([string][char]13+[string][char]10,[string][char]10); [IO.File]::WriteAllText($p,$t) }"
+powershell -NoProfile -Command "Get-ChildItem -Recurse -File -Filter *.py '%OUT%\site\idm' | ForEach-Object { $t=[IO.File]::ReadAllText($_.FullName); $t=$t.Replace([string][char]13+[string][char]10,[string][char]10); [IO.File]::WriteAllText($_.FullName,$t) }"
 
 (
   echo @echo off
