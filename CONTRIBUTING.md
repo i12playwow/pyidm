@@ -103,6 +103,12 @@ Releases are tag-driven, not manual:
    is published unless the build passes its own smoke test.
 4. Test-tag first if unsure: `workflow_dispatch` on the Release workflow runs
    build + smoke test **without** publishing.
+5. After a release publishes, a `sync-repo-zip` job automatically commits the
+   exact published zip back to `portable/PyIDM-portable.zip` (with a
+   regenerated `.sha256`) via a PR that auto-merges once the six required
+   checks pass — the repo copy always tracks the latest release, with no
+   manual step. (Requires the repo's "Allow auto-merge" setting, which is
+   enabled.)
 
 ## Dependency updates
 

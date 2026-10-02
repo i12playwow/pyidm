@@ -12,7 +12,8 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write # needed to create the GitHub release
+  contents: write # create the GitHub release + push the zip-sync branch
+  pull-requests: write # open the zip-sync PR and enable auto-merge on it
 
 concurrency:
   group: release-${{ github.ref }}
@@ -73,3 +74,140 @@ jobs:
           files: portable/PyIDM-portable.zip
           generate_release_notes: true
           fail_on_unmatched_files: true
+
+  # After a successful publish, commit the exact published zip back to the
+  # repo so portable/PyIDM-portable.zip always matches the latest release.
+  # Branch protection rejects direct pushes to main, so this lands via a PR
+  # with GitHub-native auto-merge enabled: the PR merges itself once the six
+  # required checks pass. Requires the repo setting "Allow auto-merge"
+  # (enabled once in repo settings; not settable by GITHUB_TOKEN).
+  sync-repo-zip:
+    name: sync committed zip with the published release
+    runs-on: ubuntu-latest
+    needs: release
+    if: startsWith(github.ref, 'refs/tags/')
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Download the published zip from the release job
+        uses: actions/download-artifact@v4
+        with:
+          name: PyIDM-portable-${{ github.ref_name }}
+          path: published
+
+      - name: Commit the published zip to a sync branch
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          cp published/PyIDM-portable.zip portable/PyIDM-portable.zip
+          python - <<'PY'
+          import hashlib, pathlib
+          p = pathlib.Path("portable/PyIDM-portable.zip")
+          h = hashlib.sha256(p.read_bytes()).hexdigest()
+          pathlib.Path("portable/PyIDM-portable.zip.sha256").write_text(f"{h}  PyIDM-portable.zip\n")
+          print("published zip sha256:", h)
+          PY
+          BR="sync/portable-zip-${VERSION}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$BR"
+          if git diff --quiet; then
+            echo "Repo zip already matches the release; nothing to sync."
+            echo "NO_CHANGE=1" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          git add portable/PyIDM-portable.zip portable/PyIDM-portable.zip.sha256
+          git commit -m "Sync portable/PyIDM-portable.zip with release ${VERSION}"
+          git push -f origin "$BR"
+
+      - name: Open a PR and enable auto-merge
+        if: env.NO_CHANGE != '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ github.ref_name }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.error, urllib.request
+
+          tok = os.environ["GH_TOKEN"]
+          repo = os.environ["GITHUB_REPOSITORY"]
+          version = os.environ["VERSION"]
+          branch = f"sync/portable-zip-{version}"
+          H = {"Authorization": f"Bearer {tok}",
+               "Accept": "application/vnd.github+json",
+               "Content-Type": "application/json"}
+
+          def api(method, path, body=None):
+              data = json.dumps(body).encode() if body is not None else None
+              req = urllib.request.Request(f"https://api.github.com{path}",
+                                           data=data, headers=H, method=method)
+              try:
+                  with urllib.request.urlopen(req) as r:
+                      raw = r.read()
+                      return r.status, (json.loads(raw) if raw else {})
+              except urllib.error.HTTPError as e:
+                  return e.code, e.read().decode("utf-8", "replace")[:300]
+
+          head = f"{repo.split('/')[0]}:{branch}"
+          status, prs = api("GET", f"/repos/{repo}/pulls?state=open&head={head}")
+          if status == 200 and prs:
+              number = prs[0]["number"]
+              print(f"reusing existing PR #{number}")
+          else:
+              status, pr = api("POST", f"/repos/{repo}/pulls", {
+                  "title": f"Sync portable/PyIDM-portable.zip with release {version}",
+                  "head": branch, "base": "main",
+                  "body": ("Automated: commits the exact zip published in "
+                           f"release {version} back to the repo, with the "
+                           "regenerated sha256 sidecar. Auto-merge is enabled; "
+                           "the PR lands itself when the six required checks pass.")})
+              if status not in (200, 201):
+                  raise SystemExit(f"PR create failed: {status} {pr}")
+              number = pr["number"]
+              print(f"opened PR #{number}")
+
+          # Arm auto-merge while the PR is still pending checks. If the
+          # checks raced ahead and the PR is already "clean", GitHub refuses
+          # to arm it (verified: GraphQL reports "Pull request is in clean
+          # status") — in that case there is nothing to wait for, so merge
+          # the PR directly instead.
+          status, resp = api("PUT", f"/repos/{repo}/pulls/{number}/auto-merge",
+                             {"merge_method": "merge"})
+          if status in (200, 202):
+              print(f"auto-merge enabled on PR #{number}; "
+                    "it lands when the six checks pass")
+          elif status == 404:
+              _, full = api("GET", f"/repos/{repo}/pulls/{number}")
+              gql = json.dumps({
+                  "query": ("mutation($id: ID!) { enablePullRequestAutoMerge("
+                            "input: {pullRequestId: $id, mergeMethod: MERGE}) "
+                            "{ clientMutationId } }"),
+                  "variables": {"id": full["node_id"]}}).encode()
+              greq = urllib.request.Request(
+                  "https://api.github.com/graphql", data=gql,
+                  headers={**H, "Content-Type": "application/json"})
+              gresp = json.load(urllib.request.urlopen(greq))
+              errors = gresp.get("errors") or []
+              if not errors:
+                  print(f"auto-merge armed via GraphQL on PR #{number}")
+              elif any("clean status" in e.get("message", "") for e in errors):
+                  print("PR already clean; merging directly")
+                  st2, mr = api("PUT", f"/repos/{repo}/pulls/{number}/merge",
+                                {"merge_method": "merge"})
+                  if st2 != 200:
+                      raise SystemExit(f"direct merge failed: {st2} {mr}")
+                  print(f"PR #{number} merged directly")
+              else:
+                  raise SystemExit(f"auto-merge failed: {status} {resp}; "
+                                   f"graphql: {errors}")
+          else:
+              raise SystemExit(f"auto-merge enable failed: {status} {resp} "
+                               "(is the repo setting 'Allow auto-merge' on?)")
+          PY
