@@ -3,7 +3,8 @@
 Thanks for helping out. This repo keeps `main` green and releasable at all
 times; these rules exist so that stays true. CI re-verifies `main` itself
 weekly, so the claim stays directly tested — not just implied by the PR
-flow (see "The six required checks").
+flow (see "The six required checks"), and a failed weekly run raises a
+`[watchdog]` issue automatically (see below).
 
 ## Branch protection: `main` accepts PRs only
 
@@ -42,8 +43,11 @@ fail fast so you can stop a doomed run early. The same jobs also run on
 `main` itself weekly (plus on demand via `workflow_dispatch`) so the
 "green and releasable" claim above is re-verified between PRs: runner
 or dependency drift can invalidate a green merge commit weeks later,
-and releases tag from `main`. To reproduce locally
-(Python 3.12):
+and releases tag from `main`. A failed scheduled run raises a
+`[watchdog]` tracking issue automatically
+([notify.yml](.github/workflows/notify.yml)), so a red `main` is
+reported the same day instead of surfacing at the next PR or release.
+To reproduce locally (Python 3.12):
 
 ```bash
 pip install -e ".[dev]"
@@ -144,10 +148,12 @@ put. Change any of these, and update the matching docs in the same PR:
   for `required checks` — the intro step, the check table, the 3.9-floor
   note, Releases, and Dependabot here, plus the sync-PR section of
   REPRODUCIBLE-BUILDS.md. Update the count and the table rows together.
-- **Schedules** (probe cron, CI's weekly `main` run, Dependabot groups):
-  grep the docs for `weekly` — the Dependabot section and the six-checks
-  intro here, and the repro row of REPRODUCIBLE-BUILDS.md's enforcement
-  table; the repro.yml and ci.yml header comments name the exact day/time.
+- **Schedules** (probe cron, CI's weekly `main` run, the failure
+  watchdog, Dependabot groups): grep the docs for `weekly` — the
+  Dependabot section and the six-checks intro here, and the repro row of
+  REPRODUCIBLE-BUILDS.md's enforcement table; the repro.yml and ci.yml
+  header comments name the exact day/time, and notify.yml's header names
+  the workflows it watches.
 - **The embed-zip `VER`**: docs must not name the patch —
   [tests/test_doc_embed_zip_version.py](tests/test_doc_embed_zip_version.py)
   fails CI if they do, and REPRODUCIBLE-BUILDS.md uses the parameterized
