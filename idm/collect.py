@@ -237,12 +237,16 @@ class _Handler(BaseHTTPRequestHandler):
             self._json({"ok": False, "error": "not found"}, 404)
 
     def do_POST(self) -> None:
+        # Ordering contract: log BEFORE responding, so a client that has
+        # seen the ack knows the log entry exists (the roundtrip test
+        # asserts on it right after post() — logging after _json() raced
+        # the client and flaked CI once, on PR #30's py3.9 leg).
         path = self.path.split("?")[0]
         if path == "/queue/clear":          # no body needed
             n = queue_clear(self.server.queue_path)
-            self._json({"ok": True, "cleared": n})
             if self.server.log:
                 self.server.log(f"collector: queue cleared ({n} pending)")
+            self._json({"ok": True, "cleared": n})
             return
         try:
             items, extra = self._read_items()
@@ -253,11 +257,11 @@ class _Handler(BaseHTTPRequestHandler):
         if path == "/collect":
             n = queue_add(items, page_url=page,
                           path=self.server.queue_path)
-            self._json({"ok": True, "added": n,
-                        "pending": len(queue_pending(self.server.queue_path))})
             if self.server.log:
                 self.server.log(f"collector: queued {n} link(s) "
                                 f"from browser ({len(items)} sent)")
+            self._json({"ok": True, "added": n,
+                        "pending": len(queue_pending(self.server.queue_path))})
         elif path == "/download":
             n = queue_add(items, page_url=page,
                           path=self.server.queue_path)
