@@ -148,3 +148,11 @@ put. Change any of these, and update the matching docs in the same PR:
   describes tooling: the `setup-python` inputs in release.yml (both jobs),
   ci.yml's matrix, the prerequisites section of REPRODUCIBLE-BUILDS.md, and
   the local-repro note here.
+- **The supported Python range** (floor or ceiling): the claim in the
+  3.9-floor note here must match the pytest matrix in ci.yml —
+  [tests/test_doc_python_range.py](tests/test_doc_python_range.py) fails
+  CI if they drift, and pins the matrix floor to `requires-python` in
+  pyproject.toml (README's floor claims follow `requires-python` via
+  test_doc_floor_and_urls.py). A range bump also moves the check table's
+  `pytest (py3.X)` rows, and a floor bump moves ruff's `target-version`,
+  mypy's `python_version`, and vermin's `-t=` floor.
