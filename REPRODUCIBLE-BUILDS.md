@@ -111,7 +111,7 @@ audit — for that, read the source and the build script.
   `build_portable.bat` copies `_tkinter.pyd`, `tcl86t.dll`, `tk86t.dll`,
   `zlib1.dll`, `tcl\`, and `Lib\tkinter\` from it into the bundle.
 - Network access: the script downloads the embeddable runtime
-  (`python-3.12.10-embed-amd64.zip`, pinned via `VER` in the script; cached
+  (`python-<VER>-embed-amd64.zip`, pinned via `VER` in the script; cached
   as `portable/python-embed.zip`) and pip-installs the exact dependency set
   pinned in [`portable/requirements.txt`](portable/requirements.txt).
 
