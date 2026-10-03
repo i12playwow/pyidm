@@ -34,7 +34,8 @@ Descriptive and lowercase, one branch per change. Existing examples:
 
 ## The six required checks
 
-CI runs on every PR and every push. All six must pass before merge; the lint
+CI runs on every PR — the only way into `main`, since branch protection
+rejects direct pushes. All six must pass before merge; the lint
 jobs fail fast so you can stop a doomed run early. To reproduce locally
 (Python 3.12):
 
