@@ -1,13 +1,20 @@
 name: CI
 
-# PRs only: branch protection rejects direct pushes to main, so a push
-# trigger only ever duplicated the run the PR already did — twice the CI
-# jobs on the free tier, plus duplicate check-run names that can block
-# auto-merge when one copy flakes (seen on PR #30). Tag pushes are covered
-# by the tag-check and Release workflows; the six required checks come
-# from the pull_request run.
+# Pull requests stay the only source of the six required checks: branch
+# protection rejects direct pushes to main, so a push trigger would only
+# duplicate the run the PR already did — twice the CI jobs on the free
+# tier, plus duplicate check-run names that can block auto-merge when one
+# copy flakes (seen on PR #30). The weekly schedule and manual dispatch
+# close the remaining gap: nothing else re-tests main between PRs, and
+# runner/dependency drift can invalidate a green merge commit weeks later.
+# This keeps CONTRIBUTING's "main green and releasable" claim directly
+# verified — releases tag from main. Tag pushes are covered by the
+# tag-check and Release workflows.
 on:
   pull_request:
+  schedule:
+    - cron: "40 4 * * 1"   # Mondays 04:40 UTC — after repro's 03:20 probe
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
