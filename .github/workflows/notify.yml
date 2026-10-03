@@ -1,0 +1,99 @@
+# Watchdog: alert when a scheduled run fails on main.
+#
+# The weekly CI run (ci.yml, Mondays 04:40 UTC) and the reproducibility
+# probe (repro.yml, Mondays 03:20 UTC) run on main when nobody is looking —
+# their whole point is to catch drift (runner updates, dependency bumps,
+# GitHub-side changes) between PRs. But schedules produce no PR and no
+# reviewer: before this workflow, a red main could sit unnoticed for up to
+# a week, silently voiding CONTRIBUTING's "main green and releasable"
+# claim the release process relies on.
+#
+# This workflow listens to workflow_run events for those two workflows and,
+# only when one completes with a failure, opens or updates a tracking
+# issue titled with a "[watchdog]" marker so the failure surfaces in the
+# issue tracker and notifications.
+#
+# Why not a Slack/email step: the issue tracker is already where this repo
+# communicates, needs no external secret, and deduplicates itself (see
+# below). Why not branch protection on main: scheduled runs gate nothing —
+# branch protection would block auto-merge for every PR with flaky
+# duplicate check names (the PR #30/#33 lesson), and a red main must not
+# silently block dependabot PRs either.
+#
+# Dedup: one open issue per failing workflow. Before opening, it searches
+# open issues for the marker + workflow name; an existing issue gets a
+# "failed again" comment instead of a second issue. The issue body records
+# the failure from the run itself (job conclusions + run link), since logs
+# are retention-bound.
+#
+# Scope: exactly the two scheduled workflows, by name, and only runs whose
+# own event is `schedule` landing on main. A pull_request failure is a PR
+# problem — it fails its own PR's checks and needs no watchdog; a
+# workflow_dispatch failure is seen by whoever dispatched it.
+name: Watchdog
+
+on:
+  workflow_run:
+    workflows: ["CI", "Reproducibility probe"]
+    types: [completed]
+
+permissions:
+  issues: write
+
+jobs:
+  notify:
+    # Only scheduled runs landing on main; PR failures police themselves.
+    if: >-
+      github.event.workflow_run.event == 'schedule' &&
+      github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Open or update the [watchdog] tracking issue
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const run = context.payload.workflow_run;
+            const marker = '[watchdog] ' + run.name + ' failed on main';
+            const when = new Date(run.run_started_at).toISOString()
+              .slice(0, 16).replace('T', ' ') + ' UTC';
+            const sha = run.head_sha.slice(0, 12);
+            const jobs = await github.paginate(
+              'GET /repos/{owner}/{repo}/actions/runs/' + run.id + '/jobs');
+            const failed = jobs.filter(j => j.conclusion !== 'success');
+            const body = [
+              'Scheduled **' + run.name + '** run failed on `main`.',
+              '',
+              '- When: ' + when,
+              '- Commit: `' + sha + '`',
+              '- Run: ' + run.html_url,
+              '',
+              'Failed jobs:',
+              ...failed.map(j => '- ' + j.name + ' — ' + j.conclusion +
+                ' ([logs](' + run.html_url + '/job/' + j.id + '))'),
+              '',
+              'Fix `main`, then close this issue (the watchdog opens a',
+              'fresh one if it ever fails again).',
+            ].join('\n');
+
+            // One open issue per failing workflow: comment if one exists.
+            const q = 'repo:' + context.repo.owner + '/' + context.repo.repo +
+              ' is:issue is:open in:title "' + marker + '"';
+            const found = await github.rest.search.issuesAndPullRequests({
+              q, per_page: 1 });
+            if (found.data.total_count > 0) {
+              const existing = found.data.items[0];
+              await github.rest.issues.createComment({
+                issue_number: existing.number,
+                body: 'Failed again on ' + when + ' @ `' + sha + '` — ' +
+                  run.html_url,
+              });
+              core.notice('Updated existing watchdog issue #' +
+                existing.number);
+              return;
+            }
+
+            const issue = await github.rest.issues.create({
+              title: marker,
+              body: body,
+            });
+            core.notice('Opened watchdog issue #' + issue.number);

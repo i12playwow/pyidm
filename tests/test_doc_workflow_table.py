@@ -39,6 +39,8 @@ WORKFLOW_REF = re.compile(
 # The guard fails if one of these stops existing — the entry then goes stale.
 DELIBERATELY_UNLISTED: dict[str, str] = {
     "tag-check.yml": "tag/version gate, not part of the reproducibility chain",
+    "notify.yml": "failure watchdog for scheduled runs; verifies nothing "
+                  "itself, only reports when ci/repro runs fail",
 }
 
 
@@ -157,11 +159,14 @@ def test_drift_flags_phantom_rows_and_missing_workflows(tmp_path: Path) -> None:
 def test_allowlist_suppresses_listed_workflows_only(tmp_path: Path) -> None:
     doc = tmp_path / "doc.md"
     doc.write_text("## How this is enforced\n", encoding="utf-8")
-    # The real allowlist entry (tag-check.yml) suppresses exactly itself.
-    assert _drift({"ci.yml": 2}, {"ci.yml", "tag-check.yml"}, doc) == []
+    listed = DELIBERATELY_UNLISTED.keys()
+    # Every allowlist entry (tag-check.yml, notify.yml) suppresses exactly
+    # its own workflow.
+    assert _drift({"ci.yml": 2}, {"ci.yml", *listed}, doc) == []
     # ...but any other unlisted workflow is still flagged.
     drift = _drift({"ci.yml": 2}, {"ci.yml", "tag-check.yml", "new.yml"}, doc)
     assert any("new.yml" in d and "missing from the" in d for d in drift)
     # An allowlist entry whose workflow was deleted from the repo goes stale.
     stale = _drift({"ci.yml": 2}, {"ci.yml"}, doc)
     assert any("tag-check.yml" in d and "no longer exists" in d for d in stale)
+    assert any("notify.yml" in d and "no longer exists" in d for d in stale)
