@@ -127,3 +127,23 @@ Treat these like any other PR: review the changelog, let the six checks
 run, merge or close. Heads-up: a batch of Dependabot PRs at once can
 queue behind the free tier's ~20 concurrent CI jobs, so checks may take
 longer than usual — that's congestion, not failure.
+
+## Docs to keep in sync
+
+Some doc claims only stay true while the infrastructure around them stays
+put. Change any of these, and update the matching docs in the same PR:
+
+- **The required-check set** (add, remove, or rename a check): grep the docs
+  for `required checks` — the intro step, the check table, the 3.9-floor
+  note, Releases, and Dependabot here, plus the sync-PR section of
+  REPRODUCIBLE-BUILDS.md. Update the count and the table rows together.
+- **Schedules** (probe cron, Dependabot groups): grep the docs for `weekly`
+  — the Dependabot section here and the repro row of REPRODUCIBLE-BUILDS.md's
+  enforcement table; repro.yml's header comment names the exact day/time.
+- **The embed-zip `VER`**: docs must not name the patch —
+  [tests/test_doc_embed_zip_version.py](tests/test_doc_embed_zip_version.py)
+  fails CI if they do, and REPRODUCIBLE-BUILDS.md uses the parameterized
+  `python-<VER>-embed-amd64.zip` form. Do move the *minor* `3.12` where it
+  describes tooling: the `setup-python` inputs in release.yml (both jobs),
+  ci.yml's matrix, the prerequisites section of REPRODUCIBLE-BUILDS.md, and
+  the local-repro note here.
