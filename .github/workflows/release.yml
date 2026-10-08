@@ -100,7 +100,7 @@ jobs:
           python-version: "3.12"
 
       - name: Download the published zip from the release job
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: PyIDM-portable-${{ github.ref_name }}
           path: published
