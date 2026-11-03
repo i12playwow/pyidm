@@ -18,7 +18,7 @@ rich==15.0.0
 
 # transitive closure — requests: certifi, charset-normalizer, idna, urllib3;
 # rich: markdown-it-py -> mdurl, pygments
-certifi==2026.7.22
+certifi==2026.10.18
 charset-normalizer==3.5.2
 idna==3.20
 markdown-it-py==4.2.0
